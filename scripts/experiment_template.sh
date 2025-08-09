@@ -36,14 +36,14 @@ fi
 # Synchronize all nodes using DDP barrier
 torchrun --nnodes=$NUM_NODES --nproc_per_node=1 --node_rank=$NODE_RANK \
     --master_addr=$MASTER_ADDR --master_port=$((MASTER_PORT + 1)) \
-    utils/ddp_barrier.py "Waiting for workload estimator to complete"
+    knapformer/utils/ddp_barrier.py "Waiting for workload estimator to complete"
 
 GAMMA=$(cat "$GAMMA_FILE")
 
 # Run simulator with balancer
 torchrun --nnodes=$NUM_NODES --nproc_per_node=$NUM_OF_GPUS --node_rank=$NODE_RANK \
     --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT \
-    simulator/simulate.py --data_codes "$DATA_CODES" --balancer_config "$BALANCER_CONFIG" \
+    knapformer/simulator/simulate.py --data_codes "$DATA_CODES" --balancer_config "$BALANCER_CONFIG" \
     --gamma $GAMMA --d_model $D_MODEL --d_head $D_HEAD --n_layers $N_LAYERS \
     --shard_size $SHARD_SIZE --causal $CAUSAL --use_flux $USE_FLUX \
     --n_ds_layers $N_DS_LAYERS --n_ss_layers $N_SS_LAYERS \
@@ -52,12 +52,12 @@ torchrun --nnodes=$NUM_NODES --nproc_per_node=$NUM_OF_GPUS --node_rank=$NODE_RAN
 # Synchronize all nodes before running without balancer
 torchrun --nnodes=$NUM_NODES --nproc_per_node=1 --node_rank=$NODE_RANK \
     --master_addr=$MASTER_ADDR --master_port=$((MASTER_PORT + 1)) \
-    utils/ddp_barrier.py "Waiting for simulator with balancer to complete"
+    knapformer/utils/ddp_barrier.py "Waiting for simulator with balancer to complete"
 
 # Run simulator without balancer
 torchrun --nnodes=$NUM_NODES --nproc_per_node=$NUM_OF_GPUS --node_rank=$NODE_RANK \
     --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT \
-    simulator/simulate.py --data_codes "$DATA_CODES" --balancer_config "" \
+    knapformer/simulator/simulate.py --data_codes "$DATA_CODES" --balancer_config "" \
     --gamma $GAMMA --d_model $D_MODEL --d_head $D_HEAD --n_layers $N_LAYERS \
     --shard_size $SHARD_SIZE --causal $CAUSAL --use_flux $USE_FLUX \
     --n_ds_layers $N_DS_LAYERS --n_ss_layers $N_SS_LAYERS \
@@ -66,4 +66,4 @@ torchrun --nnodes=$NUM_NODES --nproc_per_node=$NUM_OF_GPUS --node_rank=$NODE_RAN
 # Synchronize all nodes after running without balancer
 torchrun --nnodes=$NUM_NODES --nproc_per_node=1 --node_rank=$NODE_RANK \
     --master_addr=$MASTER_ADDR --master_port=$((MASTER_PORT + 1)) \
-    utils/ddp_barrier.py "Waiting for simulator without balancer to complete"
+    knapformer/utils/ddp_barrier.py "Waiting for simulator without balancer to complete"

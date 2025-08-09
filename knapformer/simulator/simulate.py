@@ -9,10 +9,10 @@ import torch.distributed as dist
 from tqdm import tqdm
 
 from knapformer import SequenceBalancer
-from simulator.simulator_data import DataSimulator
-from simulator.simulator_model import Transformer, create_mmdit, create_transformer
-from utils.fsdp_utils import setup_distributed, teardown_distributed
-from utils.perf_utils import get_peak_tflops_per_second
+from knapformer.simulator.simulator_data import DataSimulator
+from knapformer.simulator.simulator_model import Transformer, create_mmdit, create_transformer
+from knapformer.utils.fsdp_utils import setup_distributed, teardown_distributed
+from knapformer.utils.perf_utils import get_peak_tflops_per_second
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger(__name__)

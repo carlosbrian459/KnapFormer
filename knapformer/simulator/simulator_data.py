@@ -4,7 +4,7 @@ import re
 import torch
 import torch.distributed as dist
 
-from utils.transformer_utils import get_rope_cossin
+from knapformer.utils.transformer_utils import get_rope_cossin
 
 logger = logging.getLogger(__name__)
 

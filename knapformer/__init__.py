@@ -1,5 +1,4 @@
-from utils.transformer_utils import TransformerBlock, get_rope_cossin
+from knapformer.sequence_balancer import SequenceBalancer
+from knapformer.workload_estimator import TheoreticalWorkloadEstimator
 
-from .sequence_balancer import SequenceBalancer
-
-__all__ = ["SequenceBalancer"]
+__all__ = ["SequenceBalancer", "TheoreticalWorkloadEstimator"]
