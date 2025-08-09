@@ -370,7 +370,7 @@ def get_flux_experiments() -> list[ExperimentConfig]:
                 d_head=128,
                 n_ds_layers=19,
                 n_ss_layers=38,
-                shard_size=8,
+                shard_size=4,
                 use_flux=1,
             )
         )
@@ -386,7 +386,7 @@ def get_flux_experiments() -> list[ExperimentConfig]:
                 d_head=128,
                 n_ds_layers=19,
                 n_ss_layers=38,
-                shard_size=8,
+                shard_size=4,
                 use_flux=1,
             )
         )
@@ -402,7 +402,7 @@ def get_flux_experiments() -> list[ExperimentConfig]:
                 d_head=128,
                 n_ds_layers=19,
                 n_ss_layers=38,
-                shard_size=8,
+                shard_size=4,
                 use_flux=1,
             )
         )

@@ -4,9 +4,9 @@ import torch
 import torch.nn as nn
 
 from knapformer import SequenceBalancer
-from utils.fsdp_utils import all_gather_with_padding, common_model_setup
-from utils.mmdit_utils import DoubleStreamBlock, SingleStreamBlock
-from utils.transformer_utils import TransformerBlock
+from knapformer.utils.fsdp_utils import all_gather_with_padding, common_model_setup
+from knapformer.utils.mmdit_utils import DoubleStreamBlock, SingleStreamBlock
+from knapformer.utils.transformer_utils import TransformerBlock
 
 logger = logging.getLogger(__name__)
 

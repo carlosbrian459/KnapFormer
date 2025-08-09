@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from knapformer import SequenceBalancer
-from utils.transformer_utils import apply_attn, apply_rope
+from knapformer.utils.transformer_utils import apply_attn, apply_rope
 
 
 @dataclass
