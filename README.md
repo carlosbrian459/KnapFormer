@@ -156,3 +156,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
   year={2025}
 }
 ```
+
+## Notes
+This repository may be relocated to the [adobe-research organization](https://github.com/adobe-research), with this copy serving as a mirror.
