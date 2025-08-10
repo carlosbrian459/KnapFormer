@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from simulator.simulator_model import MMDiT, Transformer
+from knapformer.simulator.simulator_model import MMDiT, Transformer
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def run_benchmarking(
     num_warmup=5,
     num_repeat=5,
 ):
-    from utils.transformer_utils import get_rope_cossin
+    from knapformer.utils.transformer_utils import get_rope_cossin
 
     device = torch.cuda.current_device()
 

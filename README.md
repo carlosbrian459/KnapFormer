@@ -33,11 +33,11 @@ source ./.venv/bin/activate
 
 ## Project Structure
 
-- `knapformer/` - Main package code
-- `simulator/` - Simulation components
-- `utils/` - Utility functions
-- `tests/` - Test suite
-- `scripts/` - Execution scripts
+- `knapformer/__init__.py` - Main package code
+- `knapformer/simulator/` - Simulation components
+- `knapformer/utils/` - Utility functions
+- `knapformer/tests/` - Test suite
+- `knapformer/scripts/` - Execution scripts
 
 
 ## Usage
@@ -59,9 +59,9 @@ The script will benchmark the workload and generate plots showing theoretical vs
 KnapFormer provides seamless integration with MMDiT architectures for dynamic load balancing. The integration is designed to be as minimally intrusive as possible. You can reference the provided example to integrate KnapFormer into your own DiT. 
 
 **Key Integration Points:**
-- **MMDiT Forward Pass**: See [`simulator/simulator_model.py`](simulator/simulator_model.py) (lines 75-146) for routing and reverse routing implementation
-- **Attention Integration**: See [`utils/transformer_utils.py`](utils/transformer_utils.py) (lines 396-429) for pre/post attention operations
-- **Double Stream Blocks**: See [`utils/mmdit_utils.py`](utils/mmdit_utils.py) (lines 207-321) for text/image token processing with balancing; (lines 308-319) for FSDP-compatible conditional execution
+- **MMDiT Forward Pass**: See [`knapformer/simulator/simulator_model.py`](knapformer/simulator/simulator_model.py) (lines 75-146) for routing and reverse routing implementation
+- **Attention Integration**: See [`knapformer/utils/transformer_utils.py`](knapformer/utils/transformer_utils.py) (lines 396-429) for pre/post attention operations
+- **Double Stream Blocks**: See [`knapformer/utils/mmdit_utils.py`](knapformer/utils/mmdit_utils.py) (lines 207-321) for text/image token processing with balancing; (lines 308-319) for FSDP-compatible conditional execution
 
 ### Training Simulator
 
@@ -76,7 +76,7 @@ KnapFormer includes a comprehensive training simulator for benchmarking load bal
 **Usage:**
 ```bash
 # Run simulator with sequence balancer
-torchrun --nproc_per_node=8 simulator/simulate.py \
+torchrun --nproc_per_node=8 knapformer/simulator/simulate.py \
     --data_codes "g8b32i256f1s0" --balancer_config "g1n8" \
     --gamma 0.4 --d_model 3072 --use_flux 0
 
@@ -84,9 +84,9 @@ torchrun --nproc_per_node=8 simulator/simulate.py \
 ```
 
 **Implementation Details:**
-- **Main Simulator**: [`simulator/simulate.py`](simulator/simulate.py) - Core simulation logic and performance measurement
-- **Model Definitions**: [`simulator/simulator_model.py`](simulator/simulator_model.py) - Transformer and MMDiT model implementations
-- **Data Generation**: [`simulator/simulator_data.py`](simulator/simulator_data.py) - Synthetic data generation with configurable sequence lengths
+- **Main Simulator**: [`knapformer/simulator/simulate.py`](knapformer/simulator/simulate.py) - Core simulation logic and performance measurement
+- **Model Definitions**: [`knapformer/simulator/simulator_model.py`](knapformer/simulator/simulator_model.py) - Transformer and MMDiT model implementations
+- **Data Generation**: [`knapformer/simulator/simulator_data.py`](knapformer/simulator/simulator_data.py) - Synthetic data generation with configurable sequence lengths
 
 ### Experiment Launcher
 

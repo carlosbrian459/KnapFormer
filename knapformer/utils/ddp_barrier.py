@@ -2,7 +2,7 @@ import logging
 
 import torch.distributed as dist
 
-from utils.fsdp_utils import setup_distributed, teardown_distributed
+from knapformer.utils.fsdp_utils import setup_distributed, teardown_distributed
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     Standalone usage for shell scripts:
     torchrun --nnodes=N --nproc_per_node=1 --node_rank=X \
         --master_addr=ADDR --master_port=PORT \
-        ddp_barrier.py "Custom message"
+       ddp_barrier.py "Custom message"
     """
     import argparse
 

@@ -5,8 +5,8 @@ import torch
 import torch.distributed as dist
 
 from knapformer import SequenceBalancer
-from utils.fsdp_utils import setup_distributed, teardown_distributed
-from utils.transformer_utils import TransformerBlock, get_rope_cossin
+from knapformer.utils.fsdp_utils import setup_distributed, teardown_distributed
+from knapformer.utils.transformer_utils import TransformerBlock, get_rope_cossin
 
 logger = logging.getLogger(__name__)
 
